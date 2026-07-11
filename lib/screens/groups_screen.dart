@@ -253,7 +253,7 @@ class _GroupsScreenState extends State<GroupsScreen> with AutomaticKeepAliveClie
         ],
       ),
     );
-  } }
+  }
 
   Color _groupColor(int index) {
     final colors = [
