@@ -1323,7 +1323,8 @@ class _MainShellState extends State<MainShell> {
                   height: 300,
                   child: Center(child: CircularProgressIndicator(color: Color(0xFF00B050))),
                 );
-                           if (snapshot.hasError || snapshot.data?.statusCode != 200) {
+              }
+              if (snapshot.hasError || snapshot.data?.statusCode != 200) {
                 return SizedBox(
                   height: 300,
                   child: Center(
