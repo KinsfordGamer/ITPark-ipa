@@ -679,9 +679,9 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
     });
   }
 
-  Future<void> _pickFile() async {
+  Future<void> _pickFileWithType(FileType type) async {
     try {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.platform.pickFiles(type: type);
       if (result != null && result.files.single.path != null) {
         setState(() {
           _selectedFilePath = result.files.single.path;
@@ -691,6 +691,105 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
     } catch (e) {
       debugPrint('Error picking file: $e');
     }
+  }
+
+  void _showAttachmentMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF161F30) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Biriktirish',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _attachmentOption(
+                      icon: Icons.image_rounded,
+                      color: Colors.purple,
+                      label: 'Galereya',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.image);
+                      },
+                    ),
+                    _attachmentOption(
+                      icon: Icons.video_collection_rounded,
+                      color: Colors.pink,
+                      label: 'Video',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.video);
+                      },
+                    ),
+                    _attachmentOption(
+                      icon: Icons.insert_drive_file_rounded,
+                      color: Colors.blue,
+                      label: 'Fayl',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.any);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _attachmentOption({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: color.withOpacity(0.15),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _clearFile() {
@@ -774,11 +873,17 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
   bool _isImage(String? fileUrl) {
     if (fileUrl == null) return false;
     final path = fileUrl.toLowerCase();
-    return path.endsWith('.png') ||
-        path.endsWith('.jpg') ||
-        path.endsWith('.jpeg') ||
-        path.endsWith('.gif') ||
-        path.endsWith('.webp');
+    final cleanPath = path.split('?').first;
+    return cleanPath.endsWith('.png') ||
+        cleanPath.endsWith('.jpg') ||
+        cleanPath.endsWith('.jpeg') ||
+        cleanPath.endsWith('.gif') ||
+        cleanPath.endsWith('.webp') ||
+        path.contains('.png') ||
+        path.contains('.jpg') ||
+        path.contains('.jpeg') ||
+        path.contains('.webp') ||
+        path.contains('.gif');
   }
 
   @override
@@ -1003,7 +1108,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.attach_file, color: Colors.blueAccent),
-                        onPressed: _pickFile,
+                        onPressed: () => _showAttachmentMenu(context),
                       ),
                       Expanded(
                         child: TextField(
