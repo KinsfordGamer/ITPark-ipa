@@ -154,6 +154,14 @@ class _GroupsScreenState extends State<GroupsScreen> with AutomaticKeepAliveClie
                       ],
                     ),
                   ),
+                   IconButton(
+                    icon: const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showGroupRating(group, groupStudents);
+                    },
+                  ),
+                  const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF00B050), size: 28),
                     onPressed: () {
@@ -227,6 +235,213 @@ class _GroupsScreenState extends State<GroupsScreen> with AutomaticKeepAliveClie
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showGroupRating(Map<String, dynamic> group, List<dynamic> students) {
+    DateTime ratingDate = DateTime.now();
+    final Map<int, int> tempStars = {};
+
+    final textColor = AppTheme.textPrimary(context);
+    final textSecColor = AppTheme.textSecondary(context);
+    final border = AppTheme.border(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.cardBg(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ratingCtx, setRatingState) {
+          final dateStr = "${ratingDate.year}-${ratingDate.month.toString().padLeft(2, '0')}-${ratingDate.day.toString().padLeft(2, '0')}";
+          
+          Future<void> saveTempStars(int sid, int stars) async {
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setInt('student_stars_${sid}_date_$dateStr', stars);
+              setRatingState(() {
+                tempStars[sid] = stars;
+              });
+            } catch (_) {}
+          }
+
+          return Container(
+            padding: EdgeInsets.only(
+              left: 20, right: 20, top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            ),
+            child: FutureBuilder<void>(
+              future: SharedPreferences.getInstance().then((prefs) {
+                for (final s in students) {
+                  if (s != null) {
+                    final sid = s['id'];
+                    if (sid != null) {
+                      tempStars[sid] = prefs.getInt('student_stars_${sid}_date_$dateStr') ?? 0;
+                    }
+                  }
+                }
+              }),
+              builder: (futureCtx, snapshot) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(width: 40, height: 4, decoration: BoxDecoration(color: border, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 16),
+                    Text(
+                      '${group['name'] ?? ''} — Baholash',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                          onPressed: () {
+                            setRatingState(() {
+                              ratingDate = ratingDate.subtract(const Duration(days: 1));
+                            });
+                          },
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: ratingDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.dark(
+                                      primary: const Color(0xFF00B050),
+                                      onPrimary: Colors.white,
+                                      surface: AppTheme.cardBg(context),
+                                      onSurface: AppTheme.textPrimary(context),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setRatingState(() {
+                                ratingDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00B050).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF00B050)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  dateStr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF00B050),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios_rounded, size: 20),
+                          onPressed: () {
+                            setRatingState(() {
+                              ratingDate = ratingDate.add(const Duration(days: 1));
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    students.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Text('Guruhda o\'quvchi yo\'q', style: TextStyle(color: textSecColor)),
+                          )
+                        : Flexible(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: students.length,
+                              itemBuilder: (listCtx, index) {
+                                final s = students[index];
+                                if (s == null) return const SizedBox();
+                                final rawName = '${s['first_name'] ?? ''} ${s['last_name'] ?? ''}'.trim();
+                                final cleanName = rawName.replaceFirst(RegExp(r'^\d+\s*-\s*'), '');
+                                final sid = s['id'];
+                                final stars = tempStars[sid] ?? 0;
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          cleanName,
+                                          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: List.generate(3, (starIdx) {
+                                          final isFilled = starIdx < stars;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              if (sid != null) {
+                                                if (stars == starIdx + 1) {
+                                                  saveTempStars(sid, 0);
+                                                } else {
+                                                  saveTempStars(sid, starIdx + 1);
+                                                }
+                                              }
+                                            },
+                                            child: Icon(
+                                              isFilled ? Icons.star_rounded : Icons.star_border_rounded,
+                                              color: Colors.amber,
+                                              size: 24,
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00B050),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Tayyor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                );
+              }
+            ),
+          );
+        },
       ),
     );
   }
