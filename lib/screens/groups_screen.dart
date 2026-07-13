@@ -722,9 +722,22 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
         _clearFile();
         await _fetchMessages(silent: true);
         _scrollToBottom();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Xatolik: $responseBody (Status: ${res.statusCode})'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error sending staff group message: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ulanish xatoligi: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
@@ -756,6 +769,16 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
         const SnackBar(content: Text('Faylni ochishda xatolik yuz berdi')),
       );
     }
+  }
+
+  bool _isImage(String? fileUrl) {
+    if (fileUrl == null) return false;
+    final path = fileUrl.toLowerCase();
+    return path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.gif') ||
+        path.endsWith('.webp');
   }
 
   @override
@@ -849,33 +872,87 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
                                         ),
                                       if (m['file'] != null) ...[
                                         const SizedBox(height: 8),
-                                        InkWell(
-                                          onTap: () => _downloadAndOpenFile(m['file'], m['fileName'] ?? 'fayl'),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black26,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.insert_drive_file, color: Colors.amber, size: 20),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    m['fileName'] ?? 'Faylni ochish',
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
-                                                      decoration: TextDecoration.underline,
+                                        Builder(
+                                          builder: (context) {
+                                            final fileUrl = m['file'].toString();
+                                            String fullUrl = fileUrl;
+                                            if (!fileUrl.startsWith('http')) {
+                                              fullUrl = 'https://itparksurhondaryocrm.one' + fileUrl;
+                                            }
+
+                                            if (_isImage(fileUrl)) {
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => CustomImageViewerScreen(
+                                                        imageUrl: fullUrl,
+                                                        fileName: m['fileName'] ?? 'Rasm',
+                                                      ),
                                                     ),
+                                                  );
+                                                },
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Image.network(
+                                                    fullUrl,
+                                                    fit: BoxFit.cover,
+                                                    width: 220,
+                                                    height: 160,
+                                                    loadingBuilder: (context, child, loadingProgress) {
+                                                      if (loadingProgress == null) return child;
+                                                      return Container(
+                                                        width: 220,
+                                                        height: 160,
+                                                        color: Colors.black12,
+                                                        child: const Center(
+                                                          child: CircularProgressIndicator(color: Color(0xFF00B050), strokeWidth: 2),
+                                                        ),
+                                                      );
+                                                    },
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 220,
+                                                        height: 160,
+                                                        color: Colors.black12,
+                                                        child: const Icon(Icons.broken_image, color: Colors.grey),
+                                                      );
+                                                    },
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          ),
+                                              );
+                                            }
+
+                                            return InkWell(
+                                              onTap: () => _downloadAndOpenFile(m['file'], m['fileName'] ?? 'fayl'),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black26,
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.insert_drive_file, color: Colors.amber, size: 20),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        m['fileName'] ?? 'Faylni ochish',
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                          decoration: TextDecoration.underline,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ],
                                       const SizedBox(height: 4),
@@ -948,6 +1025,41 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class CustomImageViewerScreen extends StatelessWidget {
+  final String imageUrl;
+  final String fileName;
+
+  const CustomImageViewerScreen({Key? key, required this.imageUrl, required this.fileName}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          clipBehavior: Clip.none,
+          maxScale: 4.0,
+          minScale: 0.5,
+          child: Image.network(
+            imageUrl,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const CircularProgressIndicator(color: Color(0xFF00B050));
+            },
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+          ),
+        ),
+      ),
     );
   }
 }
