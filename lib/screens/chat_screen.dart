@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:open_file/open_file.dart';
+import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -23,6 +27,10 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   Timer? _pollingTimer;
   int? _lastScrollMessageCount;
+
+  // File variables
+  String? _selectedFilePath;
+  String? _selectedFileName;
 
   @override
   void initState() {
@@ -141,26 +149,88 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles();
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _selectedFilePath = result.files.single.path;
+          _selectedFileName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking file: $e');
+    }
+  }
+
+  void _clearFile() {
+    setState(() {
+      _selectedFilePath = null;
+      _selectedFileName = null;
+    });
+  }
+
+  Future<void> _downloadAndOpenFile(String fileUrl, String fileName) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fayl ochilmoqda: $fileName...')),
+      );
+      String fullUrl = fileUrl;
+      if (!fileUrl.startsWith('http')) {
+        fullUrl = 'https://itparksurhondaryocrm.one' + fileUrl;
+      }
+      
+      final res = await http.get(Uri.parse(fullUrl));
+      if (res.statusCode == 200) {
+        final dir = Directory.systemTemp;
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(res.bodyBytes);
+        await OpenFile.open(file.path);
+      } else {
+        throw Exception('File download failed');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faylni ochishda xatolik yuz berdi')),
+      );
+    }
+  }
+
+  bool _isImage(String? fileUrl) {
+    if (fileUrl == null) return false;
+    final path = fileUrl.toLowerCase();
+    return path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.gif') ||
+        path.endsWith('.webp');
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _selectedFilePath == null) return;
 
     setState(() {
       _isSending = true;
-      _messageController.clear();
     });
 
     try {
-      final res = await ApiService.sendMessage(widget.token, text);
+      final res = await ApiService.sendMessageWithFile(
+        widget.token,
+        text,
+        _selectedFilePath,
+        _selectedFileName,
+      );
+      final responseBody = await res.stream.bytesToString();
       if (res.statusCode == 200 || res.statusCode == 201) {
+        _messageController.clear();
+        _clearFile();
         await _fetchMessages();
         _scrollToBottom();
       } else {
-        if (!ApiService.handleAuthError(context, res)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Xabar yuborishda xato: ${res.body}')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xabar yuborishda xato: $responseBody')),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -382,15 +452,101 @@ class _ChatScreenState extends State<ChatScreen> {
                                             ],
                                           ),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                m['text'] ?? '',
-                                                style: TextStyle(
-                                                  color: isMe ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                                                  fontSize: 13.5,
+                                              if (m['text'] != null && m['text'].toString().isNotEmpty)
+                                                Text(
+                                                  m['text'] ?? '',
+                                                  style: TextStyle(
+                                                    color: isMe ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                                    fontSize: 13.5,
+                                                  ),
                                                 ),
-                                              ),
+                                              if (m['file'] != null) ...[
+                                                const SizedBox(height: 8),
+                                                Builder(
+                                                  builder: (context) {
+                                                    final fileUrl = m['file'].toString();
+                                                    String fullUrl = fileUrl;
+                                                    if (!fileUrl.startsWith('http')) {
+                                                      fullUrl = 'https://itparksurhondaryocrm.one' + fileUrl;
+                                                    }
+
+                                                    if (_isImage(fileUrl)) {
+                                                      return GestureDetector(
+                                                        onTap: () {
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) => CustomImageViewerScreen(
+                                                                imageUrl: fullUrl,
+                                                                fileName: m['fileName'] ?? 'Rasm',
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: ClipRRect(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          child: Image.network(
+                                                            fullUrl,
+                                                            fit: BoxFit.cover,
+                                                            width: 220,
+                                                            height: 160,
+                                                            loadingBuilder: (context, child, loadingProgress) {
+                                                              if (loadingProgress == null) return child;
+                                                              return Container(
+                                                                width: 220,
+                                                                height: 160,
+                                                                color: Colors.black12,
+                                                                child: const Center(
+                                                                  child: CircularProgressIndicator(color: Color(0xFF00B050), strokeWidth: 2),
+                                                                ),
+                                                              );
+                                                            },
+                                                            errorBuilder: (context, error, stackTrace) {
+                                                              return Container(
+                                                                width: 220,
+                                                                height: 160,
+                                                                color: Colors.black12,
+                                                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                                                              );
+                                                            },
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+
+                                                    return InkWell(
+                                                      onTap: () => _downloadAndOpenFile(m['file'], m['fileName'] ?? 'fayl'),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(8),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.black26,
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            const Icon(Icons.insert_drive_file, color: Colors.amber, size: 20),
+                                                            const SizedBox(width: 8),
+                                                            Expanded(
+                                                              child: Text(
+                                                                m['fileName'] ?? 'Faylni ochish',
+                                                                overflow: TextOverflow.ellipsis,
+                                                                style: const TextStyle(
+                                                                  color: Colors.white,
+                                                                  fontSize: 12,
+                                                                  decoration: TextDecoration.underline,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ],
                                               const SizedBox(height: 4),
                                               Text(
                                                 time,
@@ -415,6 +571,28 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                         ),
                 ),
+                if (_selectedFileName != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: Colors.black38,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.attach_file, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _selectedFileName!,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.redAccent),
+                          onPressed: _clearFile,
+                        ),
+                      ],
+                    ),
+                  ),
                 SafeArea(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -428,6 +606,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     child: Row(
                       children: [
+                        IconButton(
+                          icon: const Icon(Icons.attach_file, color: Colors.blueAccent),
+                          onPressed: _pickFile,
+                        ),
                         Expanded(
                           child: TextField(
                             controller: _messageController,
@@ -459,6 +641,41 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class CustomImageViewerScreen extends StatelessWidget {
+  final String imageUrl;
+  final String fileName;
+
+  const CustomImageViewerScreen({Key? key, required this.imageUrl, required this.fileName}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          clipBehavior: Clip.none,
+          maxScale: 4.0,
+          minScale: 0.5,
+          child: Image.network(
+            imageUrl,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const CircularProgressIndicator(color: Color(0xFF00B050));
+            },
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+          ),
+        ),
+      ),
     );
   }
 }

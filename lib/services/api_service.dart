@@ -141,6 +141,19 @@ class ApiService {
     );
   }
 
+  static Future<http.StreamedResponse> sendMessageWithFile(String token, String text, String? filePath, String? fileName) async {
+    final uri = Uri.parse('$kBaseUrl/messages/');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+    });
+    request.fields['text'] = text;
+    if (filePath != null) {
+      request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: fileName));
+    }
+    return request.send();
+  }
+
   static Future<http.Response> getMessages(String token) {
     return http.get(Uri.parse('$kBaseUrl/messages/?limit=1000'), headers: _headers(token));
   }

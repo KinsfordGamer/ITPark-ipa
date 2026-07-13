@@ -648,7 +648,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final res = await ApiService.getStaffGroupMessages(widget.token, widget.groupId);
+      final res = await ApiService.getGroupMessages(widget.token, widget.groupId);
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
         if (mounted) {
@@ -663,7 +663,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching staff group messages: $e');
+      debugPrint('Error fetching group messages: $e');
     } finally {
       if (mounted && !silent) {
         setState(() => _isLoading = false);
@@ -709,7 +709,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
     });
 
     try {
-      final res = await ApiService.sendStaffGroupMessageWithFile(
+      final res = await ApiService.sendGroupMessageWithFile(
         widget.token,
         widget.groupId,
         text,
