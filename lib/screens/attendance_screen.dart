@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../main.dart';
 
@@ -370,71 +371,151 @@ class _AttendanceScreenState extends State<AttendanceScreen> with AutomaticKeepA
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFF00B050)))
                   : _students.isEmpty
                       ? Center(child: Text('Bu guruhda o\'quvchi yo\'q', style: TextStyle(color: textSecColor)))
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 125),
-                          itemCount: _students.length,
-                          itemBuilder: (ctx, i) {
-                            final s = _students[i];
-                            final int? sid = s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '');
-                            if (sid == null) return const SizedBox();
-                            final rawName = '${s['first_name'] ?? s['firstName'] ?? ''} ${s['last_name'] ?? s['lastName'] ?? ''}';
-                            final name = rawName.replaceFirst(RegExp(r'^\d+\s*-\s*'), ''); // Clean ID prefix
-                            final status = _attendanceMap[sid] ?? 'keldi';
+                      : Builder(
+                          builder: (context) {
+                            final absentStudents = _students.where((s) {
+                              final int? sid = s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '');
+                              return sid != null && _attendanceMap[sid] == 'kelmadi';
+                            }).toList();
 
-                            Color statusColor;
-                            switch (status) {
-                              case 'keldi': statusColor = const Color(0xFF00B050); break;
-                              case 'kelmadi': statusColor = Colors.redAccent; break;
-                              case 'kechikdi': statusColor = Colors.orangeAccent; break;
-                              default: statusColor = Colors.blueAccent;
-                            }
-
-                            return PremiumFadeIn(
-                              duration: Duration(milliseconds: 300 + (i * 50)),
-                              child: ThreeDContainer(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                border: Border.all(color: statusColor.withOpacity(0.25)),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                            return Column(
+                              children: [
+                                if (absentStudents.isNotEmpty)
+                                  Container(
+                                    margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.redAccent.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 1),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        CircleAvatar(
-                                          radius: 18,
-                                          backgroundColor: statusColor.withOpacity(0.15),
-                                          child: Text(
-                                            '${i + 1}', // Tartib raqami
-                                            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
-                                          ),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.info_outline_rounded, color: Colors.redAccent, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Kelmadi deb belgilanganlar (${absentStudents.length} ta):',
+                                              style: const TextStyle(
+                                                color: Colors.redAccent,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            name,
-                                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textColor),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
+                                        const SizedBox(height: 8),
+                                        ...absentStudents.map((s) {
+                                          final name = '${s['first_name'] ?? s['firstName'] ?? ''} ${s['last_name'] ?? s['lastName'] ?? ''}'.replaceFirst(RegExp(r'^\d+\s*-\s*'), '');
+                                          final phone = s['phone'] ?? '';
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 6),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    name,
+                                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: textColor),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (phone.toString().isNotEmpty)
+                                                  IconButton(
+                                                    icon: const Icon(Icons.phone_in_talk_rounded, color: Colors.green, size: 20),
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(),
+                                                    onPressed: () async {
+                                                      final url = 'tel:$phone';
+                                                      if (await canLaunchUrl(Uri.parse(url))) {
+                                                        await launchUrl(Uri.parse(url));
+                                                      } else {
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          const SnackBar(content: Text('Qo\'ng\'iroq qilish imkoni bo\'lmadi')),
+                                                        );
+                                                      }
+                                                    },
+                                                  ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
                                       ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        _statusButton(sid, 'keldi', 'Keldi', const Color(0xFF00B050)),
-                                        const SizedBox(width: 6),
-                                        _statusButton(sid, 'kelmadi', 'Kelmadi', Colors.redAccent),
-                                        const SizedBox(width: 6),
-                                        _statusButton(sid, 'kechikdi', 'Kech', Colors.orangeAccent),
-                                        const SizedBox(width: 6),
-                                        _statusButton(sid, 'sababli', 'Sababli', Colors.blueAccent),
-                                      ],
-                                    ),
-                                  ],
+                                  ),
+                                Expanded(
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 125),
+                                    itemCount: _students.length,
+                                    itemBuilder: (ctx, i) {
+                                      final s = _students[i];
+                                      final int? sid = s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '');
+                                      if (sid == null) return const SizedBox();
+                                      final rawName = '${s['first_name'] ?? s['firstName'] ?? ''} ${s['last_name'] ?? s['lastName'] ?? ''}';
+                                      final name = rawName.replaceFirst(RegExp(r'^\d+\s*-\s*'), ''); // Clean ID prefix
+                                      final status = _attendanceMap[sid] ?? 'keldi';
+
+                                      Color statusColor;
+                                      switch (status) {
+                                        case 'keldi': statusColor = const Color(0xFF00B050); break;
+                                        case 'kelmadi': statusColor = Colors.redAccent; break;
+                                        case 'kechikdi': statusColor = Colors.orangeAccent; break;
+                                        default: statusColor = Colors.blueAccent;
+                                      }
+
+                                      return PremiumFadeIn(
+                                        duration: Duration(milliseconds: 300 + (i * 50)),
+                                        child: ThreeDContainer(
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                          border: Border.all(color: statusColor.withOpacity(0.25)),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  CircleAvatar(
+                                                    radius: 18,
+                                                    backgroundColor: statusColor.withOpacity(0.15),
+                                                    child: Text(
+                                                      '${i + 1}', // Tartib raqami
+                                                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Text(
+                                                      name,
+                                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textColor),
+                                                      maxLines: 2,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.end,
+                                                children: [
+                                                  _statusButton(sid, 'keldi', 'Keldi', const Color(0xFF00B050)),
+                                                  const SizedBox(width: 6),
+                                                  _statusButton(sid, 'kelmadi', 'Kelmadi', Colors.redAccent),
+                                                  const SizedBox(width: 6),
+                                                  _statusButton(sid, 'kechikdi', 'Kech', Colors.orangeAccent),
+                                                  const SizedBox(width: 6),
+                                                  _statusButton(sid, 'sababli', 'Sababli', Colors.blueAccent),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
+                              ],
                             );
                           },
                         ),

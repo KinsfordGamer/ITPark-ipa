@@ -147,7 +147,7 @@ class ApiService {
     request.headers.addAll({
       'Authorization': 'Bearer $token',
     });
-    request.fields['text'] = text;
+    request.fields['text'] = text.isEmpty ? (fileName ?? 'Fayl') : text;
     if (filePath != null) {
       request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: fileName));
     }
@@ -181,7 +181,7 @@ class ApiService {
     request.headers.addAll({
       'Authorization': 'Bearer $token',
     });
-    request.fields['text'] = text;
+    request.fields['text'] = text.isEmpty ? (fileName ?? 'Fayl') : text;
     if (filePath != null) {
       request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: fileName));
     }
@@ -198,7 +198,7 @@ class ApiService {
     request.headers.addAll({
       'Authorization': 'Bearer $token',
     });
-    request.fields['text'] = text;
+    request.fields['text'] = text.isEmpty ? (fileName ?? 'Fayl') : text;
     if (filePath != null) {
       request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: fileName));
     }
