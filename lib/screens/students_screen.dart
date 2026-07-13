@@ -21,6 +21,7 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
   List<dynamic> _filtered = [];
   bool _isLoading = true;
   final TextEditingController _searchCtrl = TextEditingController();
+  final Map<int, int> _studentStars = {};
 
   @override
   bool get wantKeepAlive => true;
@@ -29,7 +30,30 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
   void initState() {
     super.initState();
     _searchCtrl.addListener(_applyFilter);
-    _loadCacheAndFetch();
+    _loadCacheAndFetch().then((_) => _loadStars());
+  }
+
+  Future<void> _loadStars() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final s in _students) {
+        final int? sid = s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '');
+        if (sid != null) {
+          _studentStars[sid] = prefs.getInt('student_stars_$sid') ?? 0;
+        }
+      }
+      setState(() {});
+    } catch (_) {}
+  }
+
+  Future<void> _saveStars(int studentId, int stars) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('student_stars_$studentId', stars);
+      setState(() {
+        _studentStars[studentId] = stars;
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadCacheAndFetch() async {
@@ -597,6 +621,32 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
                                   else
                                     Text('To\'langan: ${_fmt(paid)} so\'m',
                                         style: const TextStyle(color: Color(0xFF00B050), fontSize: 12, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: List.generate(3, (starIdx) {
+                                    final int? sid = s['id'] is int ? s['id'] as int : int.tryParse(s['id']?.toString() ?? '');
+                                    if (sid == null) return const SizedBox();
+                                    final stars = _studentStars[sid] ?? 0;
+                                    final isFilled = starIdx < stars;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        if (stars == starIdx + 1) {
+                                          _saveStars(sid, 0);
+                                        } else {
+                                          _saveStars(sid, starIdx + 1);
+                                        }
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(right: 4),
+                                        child: Icon(
+                                          isFilled ? Icons.star_rounded : Icons.star_border_rounded,
+                                          color: Colors.amber,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ),
                               ],
                             ),
                             trailing: Row(

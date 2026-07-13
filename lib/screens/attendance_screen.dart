@@ -421,30 +421,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> with AutomaticKeepA
                                     ),
                                     const SizedBox(height: 10),
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        Row(
-                                          children: List.generate(3, (starIdx) {
-                                            final stars = _starsMap[sid] ?? 0;
-                                            final isFilled = starIdx < stars;
-                                            return GestureDetector(
-                                              onTap: () {
-                                                setState(() {
-                                                  if (stars == starIdx + 1) {
-                                                    _starsMap[sid] = 0;
-                                                  } else {
-                                                    _starsMap[sid] = starIdx + 1;
-                                                  }
-                                                });
-                                              },
-                                              child: Icon(
-                                                isFilled ? Icons.star_rounded : Icons.star_border_rounded,
-                                                color: Colors.amber,
-                                                size: 20,
-                                              ),
-                                            );
-                                          }),
-                                        ),
-                                        const Spacer(),
                                         _statusButton(sid, 'keldi', 'Keldi', const Color(0xFF00B050)),
                                         const SizedBox(width: 6),
                                         _statusButton(sid, 'kelmadi', 'Kelmadi', Colors.redAccent),
