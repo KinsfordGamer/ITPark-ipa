@@ -648,7 +648,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final res = await ApiService.getGroupMessages(widget.token, widget.groupId);
+      final res = await ApiService.getStaffGroupMessages(widget.token, widget.groupId);
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
         if (mounted) {
@@ -709,7 +709,7 @@ class _TeacherGroupChatScreenState extends State<TeacherGroupChatScreen> {
     });
 
     try {
-      final res = await ApiService.sendGroupMessageWithFile(
+      final res = await ApiService.sendStaffGroupMessageWithFile(
         widget.token,
         widget.groupId,
         text,
