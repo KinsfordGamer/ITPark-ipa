@@ -568,6 +568,22 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
                       final paid = (s['paidThisMonth'] ?? 0.0);
                       final groupName = _getGroupName(s['groupIds']);
                       final hasDebt = (debt is num) && debt > 0;
+                      final bool isGuruhsiz = s['groupIds'] == null || (s['groupIds'] is List && (s['groupIds'] as List).isEmpty);
+                      bool isCompletedGroup = false;
+                      if (!isGuruhsiz) {
+                        final id = s['groupIds'] is List ? (s['groupIds'] as List).first : s['groupIds'];
+                        final g = _groups.firstWhere((g) => g['id'] == id, orElse: () => null);
+                        if (g != null) {
+                          final gStatus = (g['status'] ?? '').toString().toLowerCase();
+                          final gStage = (g['stage'] ?? '').toString().toLowerCase();
+                          final gName = (g['name'] ?? '').toString().toLowerCase();
+                          if (gStatus == 'completed' || gStatus == 'finished' || gStatus == 'archive' || gStatus == 'tugagan' ||
+                              gStage == 'completed' || gStage == 'finished' || gStage == 'archive' || gStage == 'tugagan' ||
+                              gName.contains('tugagan') || gName.contains('finished') || gName.contains('completed')) {
+                            isCompletedGroup = true;
+                          }
+                        }
+                      }
 
                       return PremiumFadeIn(
                         duration: Duration(milliseconds: 300 + (index * 40)),
@@ -614,23 +630,6 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
                                     Text(phone, style: TextStyle(color: textSecColor, fontSize: 12)),
                                   ],
                                 ),
-                                final bool isGuruhsiz = s['groupIds'] == null || (s['groupIds'] is List && (s['groupIds'] as List).isEmpty);
-                                bool isCompletedGroup = false;
-                                if (!isGuruhsiz) {
-                                  final id = s['groupIds'] is List ? (s['groupIds'] as List).first : s['groupIds'];
-                                  final g = _groups.firstWhere((g) => g['id'] == id, orElse: () => null);
-                                  if (g != null) {
-                                    final gStatus = (g['status'] ?? '').toString().toLowerCase();
-                                    final gStage = (g['stage'] ?? '').toString().toLowerCase();
-                                    final gName = (g['name'] ?? '').toString().toLowerCase();
-                                    if (gStatus == 'completed' || gStatus == 'finished' || gStatus == 'archive' || gStatus == 'tugagan' ||
-                                        gStage == 'completed' || gStage == 'finished' || gStage == 'archive' || gStage == 'tugagan' ||
-                                        gName.contains('tugagan') || gName.contains('finished') || gName.contains('completed')) {
-                                      isCompletedGroup = true;
-                                    }
-                                  }
-                                }
-
                                 const SizedBox(height: 4),
                                 if (isGuruhsiz)
                                   const Text('Guruhsiz', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold))
