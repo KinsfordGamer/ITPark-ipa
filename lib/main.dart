@@ -194,6 +194,70 @@ class PremiumFadeIn extends StatelessWidget {
   }
 }
 
+class BounceButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final Duration duration;
+
+  const BounceButton({
+    Key? key,
+    required this.child,
+    this.onTap,
+    this.duration = const Duration(milliseconds: 100),
+  }) : super(key: key);
+
+  @override
+  State<BounceButton> createState() => _BounceButtonState();
+}
+
+class _BounceButtonState extends State<BounceButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.onTap == null) return widget.child;
+
+    return GestureDetector(
+      onTapDown: (_) {
+        _controller.forward();
+      },
+      onTapUp: (_) {
+        _controller.reverse();
+      },
+      onTapCancel: () {
+        _controller.reverse();
+      },
+      onTap: () {
+        HapticFeedback.lightImpact();
+        widget.onTap!();
+      },
+      child: ScaleTransition(
+        scale: _scale,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class ITParkApp extends StatefulWidget {
   const ITParkApp({Key? key}) : super(key: key);
 
@@ -1046,15 +1110,18 @@ class _MainShellState extends State<MainShell> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(
-                      'Tushundim',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF131C2E)),
+                  child: BounceButton(
+                    onTap: () => Navigator.pop(ctx),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: null, // let BounceButton handle tap
+                      child: const Text(
+                        'Tushundim',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF131C2E)),
+                      ),
                     ),
                   ),
                 ),
@@ -1124,15 +1191,18 @@ class _MainShellState extends State<MainShell> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(
-                      'Tushundim',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                  child: BounceButton(
+                    onTap: () => Navigator.pop(ctx),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: null, // let BounceButton handle tap
+                      child: const Text(
+                        'Tushundim',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
@@ -1190,15 +1260,18 @@ class _MainShellState extends State<MainShell> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(
-                      'Ura! Davom etamiz',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF131C2E)),
+                  child: BounceButton(
+                    onTap: () => Navigator.pop(ctx),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: null, // let BounceButton handle tap
+                      child: const Text(
+                        'Ura! Davom etamiz',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF131C2E)),
+                      ),
                     ),
                   ),
                 ),
@@ -3032,10 +3105,7 @@ class SettingsTab extends StatelessWidget {
                   },
                 ),
                 Divider(height: 1, color: AppTheme.border(context)),
-                ListTile(
-                  leading: const Icon(Icons.lock_open, color: Color(0xFF00B050)),
-                  title: Text('Parolni o\'zgartirish', style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
-                  trailing: Icon(Icons.chevron_right, color: textSecColor),
+                BounceButton(
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -3049,12 +3119,19 @@ class SettingsTab extends StatelessWidget {
                       ),
                     );
                   },
+                  child: ListTile(
+                    leading: Icon(Icons.lock_open, color: AppTheme.accentColor),
+                    title: Text('Parolni o\'zgartirish', style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
+                    trailing: Icon(Icons.chevron_right, color: textSecColor),
+                  ),
                 ),
                 Divider(height: 1, color: AppTheme.border(context)),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text('Tizimdan chiqish', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w500)),
+                BounceButton(
                   onTap: onLogout,
+                  child: const ListTile(
+                    leading: Icon(Icons.logout, color: Colors.redAccent),
+                    title: Text('Tizimdan chiqish', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w500)),
+                  ),
                 ),
               ],
             ),
