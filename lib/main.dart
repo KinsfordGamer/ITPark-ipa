@@ -1528,9 +1528,9 @@ class _MainShellState extends State<MainShell> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 32 : 24),
+                  margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 90 : 24),
                   transform: Matrix4.identity()
-                    ..translate(0.0, _isDragging ? -6.0 : 0.0)
+                    ..translate(0.0, _isDragging ? -20.0 : 0.0)
                     ..scale(_isDragging ? 1.04 : 1.0),
                   decoration: BoxDecoration(
                     color: AppTheme.cardBg(context).withOpacity(_isDragging ? 0.88 : 0.94),
@@ -1559,8 +1559,8 @@ class _MainShellState extends State<MainShell> {
                             duration: _isDragging ? const Duration(milliseconds: 16) : const Duration(milliseconds: 250),
                             curve: _isDragging ? Curves.linear : Curves.easeOutBack,
                             left: _isDragging 
-                                ? (_dragX - tabWidth / 2).clamp(8.0, totalWidth - tabWidth - 8.0)
-                                : (((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) + 8),
+                                ? (_dragX - 8 - tabWidth / 2).clamp(0.0, (totalWidth - 16) - tabWidth)
+                                : (((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth)),
                             width: tabWidth,
                             top: 0,
                             bottom: 0,
