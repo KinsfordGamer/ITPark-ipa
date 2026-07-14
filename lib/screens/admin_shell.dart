@@ -12,6 +12,8 @@ import 'payments_screen.dart';
 import 'chat_screen.dart';
 import '../services/notification_service.dart';
 
+import 'package:flutter/services.dart';
+
 class AdminShell extends StatefulWidget {
   final String token;
   final Map<String, dynamic> user;
@@ -30,6 +32,18 @@ class _AdminShellState extends State<AdminShell> {
   final Set<int> _knownMessageIds = {};
   bool _isFirstChatPoll = true;
   final Map<int, Map<String, dynamic>> _usersMap = {};
+  bool _isDragging = false;
+
+  void _handleDragUpdate(double localX, double tabWidth, int numTabs) {
+    int index = (localX / tabWidth).floor().clamp(0, numTabs - 1);
+    if (_currentIndex != index) {
+      setState(() {
+        _currentIndex = index;
+      });
+      HapticFeedback.selectionClick();
+      _pageController.jumpToPage(index);
+    }
+  }
 
   @override
   void initState() {
@@ -173,35 +187,99 @@ class _AdminShellState extends State<AdminShell> {
         children: screens,
       ),
       bottomNavigationBar: SafeArea(
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          height: 70,
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: const Color(0xFF00B050).withOpacity(0.2),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF00B050).withOpacity(0.08),
-                blurRadius: 16,
-                spreadRadius: 1,
-                offset: const Offset(0, 4),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double totalWidth = constraints.maxWidth - 32;
+            final int numTabs = 5;
+            final double tabWidth = totalWidth / numTabs;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+            return GestureDetector(
+              onPanStart: (details) {
+                setState(() {
+                  _isDragging = true;
+                });
+                _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+              },
+              onPanUpdate: (details) {
+                _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+              },
+              onPanEnd: (_) {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              onPanCancel: () {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 24 : 16),
+                height: 70,
+                transform: Matrix4.identity()
+                  ..translate(0.0, _isDragging ? -6.0 : 0.0)
+                  ..scale(_isDragging ? 1.04 : 1.0),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardBg(context).withOpacity(_isDragging ? 0.88 : 0.94),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: _isDragging 
+                        ? AppTheme.accentColor.withOpacity(0.35)
+                        : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
+                    width: _isDragging ? 1.6 : 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
+                      blurRadius: _isDragging ? 22 : 18,
+                      offset: Offset(0, _isDragging ? 12 : 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    child: Stack(
+                      children: [
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          left: (_currentIndex * tabWidth) - 4,
+                          width: tabWidth,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppTheme.accentColor.withOpacity(0.35),
+                                width: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa'),
+                            _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar'),
+                            _buildNavItem(2, Icons.groups_rounded, 'Guruhlar'),
+                            _buildNavItem(3, Icons.fact_check_rounded, 'Davomat'),
+                            _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa'),
-              _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar'),
-              _buildNavItem(2, Icons.groups_rounded, 'Guruhlar'),
-              _buildNavItem(3, Icons.fact_check_rounded, 'Davomat'),
-              _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar'),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -209,7 +287,8 @@ class _AdminShellState extends State<AdminShell> {
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
-    final activeColor = const Color(0xFF00B050);
+    final activeColor = AppTheme.accentColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return GestureDetector(
       onTap: () {
@@ -222,46 +301,27 @@ class _AdminShellState extends State<AdminShell> {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedScale(
-              scale: isSelected ? 1.22 : 1.0,
-              duration: const Duration(milliseconds: 300),
+              scale: isSelected ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutBack,
               child: Icon(
                 icon,
-                color: isSelected ? activeColor : AppTheme.textSecondary(context).withOpacity(0.4),
-                size: isSelected ? 24 : 22,
+                color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
+                size: 24,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? activeColor : AppTheme.textSecondary(context).withOpacity(0.5),
-              ),
-            ),
-            const SizedBox(height: 2),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              height: 3,
-              width: isSelected ? 16 : 0,
-              decoration: BoxDecoration(
-                color: activeColor,
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: [
-                  if (isSelected)
-                    BoxShadow(
-                      color: activeColor.withOpacity(0.5),
-                      blurRadius: 4,
-                      spreadRadius: 0.5,
-                    ),
-                ],
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
               ),
             ),
           ],

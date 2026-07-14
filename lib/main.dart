@@ -1209,6 +1209,18 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  bool _isDragging = false;
+
+  void _handleDragUpdate(double localX, double tabWidth, int numTabs) {
+    int index = (localX / tabWidth).floor().clamp(0, numTabs - 1);
+    if (_currentIndex != index) {
+      setState(() {
+        _currentIndex = index;
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('student_token');
@@ -1231,7 +1243,7 @@ class _MainShellState extends State<MainShell> {
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.12) : Colors.transparent,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -1354,38 +1366,97 @@ class _MainShellState extends State<MainShell> {
         index: _currentIndex >= screens.length ? 0 : _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        decoration: BoxDecoration(
-          color: AppTheme.cardBg(context).withOpacity(0.94),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          final double totalWidth = constraints.maxWidth - 32;
+          final int numTabs = 5;
+          final double tabWidth = totalWidth / numTabs;
+
+          return GestureDetector(
+            onPanStart: (details) {
+              setState(() {
+                _isDragging = true;
+              });
+              _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+            },
+            onPanUpdate: (details) {
+              _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+            },
+            onPanEnd: (_) {
+              setState(() {
+                _isDragging = false;
+              });
+            },
+            onPanCancel: () {
+              setState(() {
+                _isDragging = false;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 32 : 24),
+              transform: Matrix4.identity()
+                ..translate(0.0, _isDragging ? -6.0 : 0.0)
+                ..scale(_isDragging ? 1.04 : 1.0),
+              decoration: BoxDecoration(
+                color: AppTheme.cardBg(context).withOpacity(_isDragging ? 0.88 : 0.94),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _isDragging 
+                      ? AppTheme.accentColor.withOpacity(0.35)
+                      : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
+                  width: _isDragging ? 1.6 : 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
+                    blurRadius: _isDragging ? 22 : 18,
+                    offset: Offset(0, _isDragging ? 12 : 8),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                  child: Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        left: ((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) - 4,
+                        width: tabWidth,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppTheme.accentColor.withOpacity(0.35),
+                              width: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa', screens.length),
+                          _buildNavItem(1, Icons.calendar_today_rounded, 'Davomat', screens.length),
+                          _buildNavItem(2, Icons.account_balance_wallet_rounded, 'To\'lovlar', screens.length),
+                          _buildNavItem(3, Icons.group_rounded, 'Guruh Chat', screens.length),
+                          _buildNavItem(4, Icons.forum_rounded, 'Xabarlar', screens.length),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa', screens.length),
-                _buildNavItem(1, Icons.calendar_today_rounded, 'Davomat', screens.length),
-                _buildNavItem(2, Icons.account_balance_wallet_rounded, 'To\'lovlar', screens.length),
-                _buildNavItem(3, Icons.group_rounded, 'Guruh Chat', screens.length),
-                _buildNavItem(4, Icons.forum_rounded, 'Xabarlar', screens.length),
-              ],
-            ),
-        ),
+          );
+        },
       ),
     );
   }
