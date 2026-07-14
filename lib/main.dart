@@ -42,6 +42,7 @@ class ThreeDContainer extends StatefulWidget {
   final Border? border;
   final VoidCallback? onTap;
   final Color? shadowColor;
+  final double? depth;
 
   const ThreeDContainer({
     Key? key,
@@ -56,6 +57,7 @@ class ThreeDContainer extends StatefulWidget {
     this.border,
     this.onTap,
     this.shadowColor,
+    this.depth,
   }) : super(key: key);
 
   @override
@@ -76,7 +78,8 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
 
     final resolvedBorder = widget.border ?? defaultBorder;
     final rRadius = widget.borderRadius ?? BorderRadius.circular(20);
-    final double depth = _isPressed ? 1.0 : 3.5;
+    final double maxDepth = widget.depth ?? 3.5;
+    final double depth = _isPressed ? 1.0 : maxDepth;
 
     final Color solidShadowColor = widget.shadowColor ?? AppTheme.accentColor;
 
@@ -2800,6 +2803,7 @@ class DashboardTab extends StatelessWidget {
                     height: 110,
                     onTap: () {},
                     shadowColor: const Color(0xFF00FF87), // Neon Mint Shadow
+                    depth: 2.0,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -2818,6 +2822,7 @@ class DashboardTab extends StatelessWidget {
                     height: 110,
                     onTap: () {},
                     shadowColor: const Color(0xFF00D2FF), // Neon Cyan Shadow
+                    depth: 2.0,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

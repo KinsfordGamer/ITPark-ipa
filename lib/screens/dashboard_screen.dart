@@ -138,7 +138,6 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
           Text('Umumiy ko\'rsatkichlar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
           const SizedBox(height: 12),
 
-          // Stats Grid
           PremiumFadeIn(
             duration: const Duration(milliseconds: 400),
             child: GridView.count(
@@ -153,27 +152,6 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
                 _statCard('Guruhlar', '$totalGroups ta', Icons.groups_rounded, const Color(0xFF8B5CF6)),
                 _statCard('Qarzdorlar', '$debtors ta', Icons.warning_rounded, Colors.orangeAccent),
                 _statCard('Bu oy tushum', _formatMoney(monthlyRevenue), Icons.account_balance_rounded, const Color(0xFF00B050)),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-          // Quick Actions
-          Text('Tezkor amallar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
-          const SizedBox(height: 12),
-          PremiumFadeIn(
-            duration: const Duration(milliseconds: 500),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _quickAction('To\'lov qabul qilish', Icons.payments_rounded, const Color(0xFF00B050), () {
-                    DefaultTabController.of(context);
-                  }),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _quickAction('Davomat belgilash', Icons.fact_check_rounded, const Color(0xFF3B82F6), () {}),
-                ),
               ],
             ),
           ),
@@ -204,6 +182,8 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
     return ThreeDContainer(
       padding: const EdgeInsets.all(14),
       margin: EdgeInsets.zero,
+      depth: 2.0,
+      shadowColor: color,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
