@@ -76,7 +76,7 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
 
     final resolvedBorder = widget.border ?? defaultBorder;
     final rRadius = widget.borderRadius ?? BorderRadius.circular(20);
-    final double depth = _isPressed ? 1.5 : 6.0;
+    final double depth = _isPressed ? 1.0 : 3.5;
 
     final Color solidShadowColor = widget.shadowColor ?? AppTheme.accentColor;
 
