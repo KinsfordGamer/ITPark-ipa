@@ -25,9 +25,9 @@ class AppTheme {
   static Color bottomNavBg(BuildContext context) => isDark(context) ? const Color(0xFF1E293B).withOpacity(0.85) : Colors.white.withOpacity(0.9);
   static Color textPrimary(BuildContext context) => isDark(context) ? Colors.white : const Color(0xFF1E293B);
   static Color textSecondary(BuildContext context) => isDark(context) ? Colors.white54 : const Color(0xFF64748B);
-  static Color border(BuildContext context) => isDark(context) ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
-  static Color accentColor = const Color(0xFF10B981); // Emerald Mint Green
-  static Color secondaryColor = const Color(0xFF6366F1); // Indigo/Purple
+  static Color border(BuildContext context) => isDark(context) ? Colors.white.withOpacity(0.12) : const Color(0xFFE2E8F0);
+  static Color accentColor = const Color(0xFF00FF87); // High-vibrancy Neon Emerald Mint
+  static Color secondaryColor = const Color(0xFF6366F1); // Vibrant Indigo
 }
 
 class ThreeDContainer extends StatefulWidget {
@@ -41,6 +41,7 @@ class ThreeDContainer extends StatefulWidget {
   final BorderRadius? borderRadius;
   final Border? border;
   final VoidCallback? onTap;
+  final Color? shadowColor;
 
   const ThreeDContainer({
     Key? key,
@@ -54,6 +55,7 @@ class ThreeDContainer extends StatefulWidget {
     this.borderRadius,
     this.border,
     this.onTap,
+    this.shadowColor,
   }) : super(key: key);
 
   @override
@@ -68,40 +70,16 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final defaultBorder = Border.all(
-      color: isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.05),
-      width: 1.1,
+      color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08),
+      width: 1.2,
     );
 
     final resolvedBorder = widget.border ?? defaultBorder;
     final rRadius = widget.borderRadius ?? BorderRadius.circular(20);
-    final double depth = _isPressed ? 1.5 : 8.0;
-    
-    final List<BoxShadow> shadows = [
-      // Deep 2.5D drop shadow
-      BoxShadow(
-        color: isDark ? Colors.black.withOpacity(0.55) : Colors.grey.withOpacity(0.18),
-        offset: Offset(0, depth),
-        blurRadius: _isPressed ? 4.0 : 16.0,
-        spreadRadius: _isPressed ? 0.0 : -2.0,
-      ),
-      // Subtle green brand glow
-      BoxShadow(
-        color: const Color(0xFF00B050).withOpacity(isDark ? 0.04 : 0.02),
-        offset: Offset(0, depth * 1.5),
-        blurRadius: _isPressed ? 8.0 : 24.0,
-        spreadRadius: -4,
-      ),
-      // Highlight reflection shadow
-      if (!_isPressed)
-        BoxShadow(
-          color: isDark ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.85),
-          offset: const Offset(0, -1.5),
-          blurRadius: 3.0,
-          spreadRadius: 0.5,
-        ),
-    ];
+    final double depth = _isPressed ? 1.5 : 6.0;
 
-    // Premium 2.5D glassmorphic background gradient
+    final Color solidShadowColor = widget.shadowColor ?? AppTheme.accentColor;
+
     final defaultGradient = isDark
         ? const LinearGradient(
             colors: [Color(0xFF1E2B42), Color(0xFF111927)],
@@ -127,38 +105,68 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
         : null;
 
     Widget cardContent = AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 80),
       curve: Curves.easeOutCubic,
       height: widget.height,
       width: widget.width,
       padding: widget.padding,
-      margin: widget.margin,
       decoration: BoxDecoration(
         color: finalBgColor,
         gradient: finalGradient,
         borderRadius: rRadius,
         border: resolvedBorder,
-        boxShadow: shadows,
       ),
-      transform: Matrix4.identity()
-        ..scale(_isPressed ? 0.97 : 1.0)
-        ..translate(0.0, _isPressed ? depth * 0.55 : -2.0), // Raise card slightly when resting
       child: widget.child,
+    );
+
+    Widget threeDCard = Container(
+      margin: widget.margin,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Solid 3D extrusion block behind
+          Positioned(
+            left: _isPressed ? 0.0 : depth,
+            top: _isPressed ? 0.0 : depth,
+            right: _isPressed ? 0.0 : -depth,
+            bottom: _isPressed ? 0.0 : -depth,
+            child: Container(
+              decoration: BoxDecoration(
+                color: solidShadowColor.withOpacity(isDark ? 0.75 : 0.85),
+                borderRadius: rRadius,
+              ),
+            ),
+          ),
+          // Front Card Face
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 80),
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.identity()
+              ..translate(_isPressed ? 0.0 : -depth, _isPressed ? 0.0 : -depth),
+            child: cardContent,
+          ),
+        ],
+      ),
     );
 
     if (widget.onTap != null) {
       return GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) {
+          setState(() {
+            _isPressed = true;
+          });
+          HapticFeedback.lightImpact();
+        },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: widget.onTap,
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: cardContent,
+          child: threeDCard,
         ),
       );
     }
-    return cardContent;
+    return threeDCard;
   }
 }
 
@@ -171,7 +179,7 @@ class PremiumFadeIn extends StatelessWidget {
     Key? key,
     required this.child,
     this.delay = Duration.zero,
-    this.duration = const Duration(milliseconds: 350),
+    this.duration = const Duration(milliseconds: 800),
   }) : super(key: key);
 
   @override
@@ -179,12 +187,16 @@ class PremiumFadeIn extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0.0, end: 1.0),
       duration: duration,
-      curve: Curves.easeOutQuad,
+      curve: Curves.elasticOut,
       builder: (context, value, child) {
         return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 15 * (1.0 - value)),
+          opacity: value.clamp(0.0, 1.0),
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateX(0.3 * (1.0 - value))
+              ..scale(0.82 + (0.18 * value)),
             child: child,
           ),
         );
@@ -2689,9 +2701,10 @@ class DashboardTab extends StatelessWidget {
             child: ThreeDContainer(
               height: 180,
               gradientColors: [
-                isDark ? const Color(0xFF161F30) : Colors.white,
-                const Color(0xFF00B050).withOpacity(0.08)
+                isDark ? const Color(0xFF1E1E38) : Colors.white,
+                isDark ? const Color(0xFF2D1B4E) : const Color(0xFFEEF2FF),
               ],
+              shadowColor: const Color(0xFF8B5CF6), // Neon Purple/Violet shadow
               padding: const EdgeInsets.all(20),
               margin: const EdgeInsets.only(bottom: 20),
               child: Column(
@@ -2701,10 +2714,10 @@ class DashboardTab extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundColor: const Color(0xFF00B050),
+                        backgroundColor: AppTheme.accentColor,
                         child: Text(
                           (student['firstName'] ?? 'O').substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF111927)),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -2723,8 +2736,9 @@ class DashboardTab extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1F2C42) : const Color(0xFFE2E8F0),
+                                    color: isDark ? const Color(0xFF2D1B4E) : const Color(0xFFEEF2FF),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
                                   ),
                                   child: Row(
                                     children: [
@@ -2742,7 +2756,7 @@ class DashboardTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               'ID: ${student['studentId'] ?? ''}',
-                              style: const TextStyle(color: Color(0xFF00B050), fontWeight: FontWeight.bold),
+                              style: TextStyle(color: AppTheme.accentColor, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -2785,14 +2799,15 @@ class DashboardTab extends StatelessWidget {
                   child: ThreeDContainer(
                     height: 110,
                     onTap: () {},
+                    shadowColor: const Color(0xFF00FF87), // Neon Mint Shadow
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.account_balance_wallet, color: Color(0xFF00B050), size: 24),
+                        const Icon(Icons.account_balance_wallet, color: Color(0xFF00FF87), size: 24),
                         const Spacer(),
                         Text('Jami to\'langan', style: TextStyle(color: textSecColor, fontSize: 11)),
                         const SizedBox(height: 2),
-                        Text('${totalPaid.toStringAsFixed(0)} UZS', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textColor)),
+                        Text('${totalPaid.toStringAsFixed(0)} UZS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor)),
                       ],
                     ),
                   ),
@@ -2802,10 +2817,11 @@ class DashboardTab extends StatelessWidget {
                   child: ThreeDContainer(
                     height: 110,
                     onTap: () {},
+                    shadowColor: const Color(0xFF00D2FF), // Neon Cyan Shadow
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.blueAccent, size: 24),
+                        const Icon(Icons.check_circle_outline, color: Color(0xFF00D2FF), size: 24),
                         const Spacer(),
                         Text('Darslardagi ishtirok', style: TextStyle(color: textSecColor, fontSize: 11)),
                         const SizedBox(height: 2),
@@ -2845,8 +2861,9 @@ class DashboardTab extends StatelessWidget {
                 duration: Duration(milliseconds: 300 + (index * 80)),
                 child: ThreeDContainer(
                   padding: const EdgeInsets.all(8),
+                  shadowColor: const Color(0xFFEC4899), // Neon Pink Shadow
                   child: ListTile(
-                    leading: const Icon(Icons.group, color: Color(0xFF00B050)),
+                    leading: const Icon(Icons.group, color: Color(0xFFEC4899)),
                     title: Text(g['name'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                     subtitle: Text('Jadval: ${g['schedule'] ?? ''}', style: TextStyle(color: textSecColor)),
                     trailing: Text(
