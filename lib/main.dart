@@ -67,47 +67,67 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final defaultBorder = Border.all(
-      color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-      width: 1.0,
+      color: isDark ? Colors.white.withOpacity(0.10) : Colors.black.withOpacity(0.05),
+      width: 1.1,
     );
 
     final resolvedBorder = widget.border ?? defaultBorder;
-    final rRadius = widget.borderRadius ?? BorderRadius.circular(18);
-    final double depth = _isPressed ? 1.0 : 6.0;
+    final rRadius = widget.borderRadius ?? BorderRadius.circular(20);
+    final double depth = _isPressed ? 1.5 : 8.0;
     
     final List<BoxShadow> shadows = [
+      // Deep 2.5D drop shadow
       BoxShadow(
-        color: isDark ? Colors.black.withOpacity(0.4) : Colors.grey.withOpacity(0.12),
+        color: isDark ? Colors.black.withOpacity(0.55) : Colors.grey.withOpacity(0.18),
         offset: Offset(0, depth),
-        blurRadius: _isPressed ? 3.0 : 10.0,
+        blurRadius: _isPressed ? 4.0 : 16.0,
+        spreadRadius: _isPressed ? 0.0 : -2.0,
       ),
+      // Subtle green brand glow
       BoxShadow(
-        color: isDark ? const Color(0xFF00B050).withOpacity(0.02) : const Color(0xFF00B050).withOpacity(0.01),
-        offset: Offset(0, depth * 1.2),
-        blurRadius: _isPressed ? 6.0 : 16.0,
-        spreadRadius: -1,
+        color: const Color(0xFF00B050).withOpacity(isDark ? 0.04 : 0.02),
+        offset: Offset(0, depth * 1.5),
+        blurRadius: _isPressed ? 8.0 : 24.0,
+        spreadRadius: -4,
       ),
+      // Highlight reflection shadow
       if (!_isPressed)
         BoxShadow(
-          color: isDark ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.6),
-          offset: const Offset(0, -1),
-          blurRadius: 2.0,
+          color: isDark ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.85),
+          offset: const Offset(0, -1.5),
+          blurRadius: 3.0,
+          spreadRadius: 0.5,
         ),
     ];
 
-    final defaultColor = isDark ? const Color(0xFF161F30) : Colors.white;
-    final finalBgColor = widget.gradientColors == null ? (widget.color ?? defaultColor) : null;
+    // Premium 2.5D glassmorphic background gradient
+    final defaultGradient = isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF1E2B42), Color(0xFF111927)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [Colors.white, Color(0xFFF7F9FC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
     final finalGradient = widget.gradientColors != null 
-      ? LinearGradient(
-          colors: widget.gradientColors!,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ) 
-      : null;
+        ? LinearGradient(
+            colors: widget.gradientColors!,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : (widget.color != null ? null : defaultGradient);
+
+    final finalBgColor = widget.gradientColors == null && finalGradient == null 
+        ? (widget.color ?? (isDark ? const Color(0xFF161F30) : Colors.white)) 
+        : null;
 
     Widget cardContent = AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
       height: widget.height,
       width: widget.width,
       padding: widget.padding,
@@ -120,8 +140,8 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
         boxShadow: shadows,
       ),
       transform: Matrix4.identity()
-        ..scale(_isPressed ? 0.98 : 1.0)
-        ..translate(0.0, _isPressed ? depth * 0.4 : 0.0),
+        ..scale(_isPressed ? 0.97 : 1.0)
+        ..translate(0.0, _isPressed ? depth * 0.55 : -2.0), // Raise card slightly when resting
       child: widget.child,
     );
 
