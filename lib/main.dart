@@ -857,6 +857,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     _notificationCheckTimer?.cancel();
+    _tooltipTimer?.cancel();
     super.dispose();
   }
 
@@ -1244,14 +1245,7 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  @override
-  void dispose() {
-    _pollingTimer?.cancel();
-    _msgCtrl.dispose();
-    _scrollCtrl.dispose();
-    _tooltipTimer?.cancel();
-    super.dispose();
-  }
+
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
