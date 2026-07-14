@@ -1284,13 +1284,15 @@ class _MainShellState extends State<MainShell> {
   }
 
   bool _isDragging = false;
+  double _dragX = 0.0;
   Timer? _tooltipTimer;
   bool _showTooltip = false;
   String _activeLabel = 'Bosh sahifa';
   final List<String> _studentLabels = ['Bosh sahifa', 'Davomat', 'To\'lovlar', 'Guruh Chat', 'Xabarlar'];
 
   void _handleDragUpdate(double localX, double tabWidth, int numTabs) {
-    int index = (localX / tabWidth).floor().clamp(0, numTabs - 1);
+    // Calculate the index based on drag X position
+    int index = ((localX - 8) / tabWidth).round().clamp(0, numTabs - 1);
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
@@ -1449,8 +1451,12 @@ class _MainShellState extends State<MainShell> {
             onPressed: _fetchData,
           )
         ],
-        elevation: 0,
-        backgroundColor: Colors.transparent,
+        elevation: 6,
+        shadowColor: AppTheme.accentColor.withOpacity(0.12),
+        backgroundColor: AppTheme.cardBg(context).withOpacity(0.92),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
       ),
       body: IndexedStack(
         index: _currentIndex >= screens.length ? 0 : _currentIndex,
@@ -1498,11 +1504,15 @@ class _MainShellState extends State<MainShell> {
                 onPanStart: (details) {
                   setState(() {
                     _isDragging = true;
+                    _dragX = details.localPosition.dx;
                   });
-                  _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+                  _handleDragUpdate(_dragX, tabWidth, numTabs);
                 },
                 onPanUpdate: (details) {
-                  _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+                  setState(() {
+                    _dragX = details.localPosition.dx;
+                  });
+                  _handleDragUpdate(_dragX, tabWidth, numTabs);
                 },
                 onPanEnd: (_) {
                   setState(() {
@@ -1546,9 +1556,11 @@ class _MainShellState extends State<MainShell> {
                       child: Stack(
                         children: [
                           AnimatedPositioned(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOutCubic,
-                            left: (((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) + 8),
+                            duration: _isDragging ? const Duration(milliseconds: 16) : const Duration(milliseconds: 250),
+                            curve: _isDragging ? Curves.linear : Curves.easeOutBack,
+                            left: _isDragging 
+                                ? (_dragX - tabWidth / 2).clamp(8.0, totalWidth - tabWidth - 8.0)
+                                : (((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) + 8),
                             width: tabWidth,
                             top: 0,
                             bottom: 0,
