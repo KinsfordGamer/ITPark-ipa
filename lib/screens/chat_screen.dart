@@ -559,7 +559,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                           child: Column(
                                             crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                             children: [
-                                              Text('DEBUG KEYS: ${m.keys.toList().toString()}', style: const TextStyle(color: Colors.amber, fontSize: 8)),
                                               if (m['text'] != null && m['text'].toString().isNotEmpty)
                                                 Text(
                                                   m['text'] ?? '',

@@ -1908,9 +1908,9 @@ class _GroupChatDetailScreenState extends State<GroupChatDetailScreen> {
     });
   }
 
-  Future<void> _pickFile() async {
+  Future<void> _pickFileWithType(FileType type) async {
     try {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.platform.pickFiles(type: type);
       if (result != null && result.files.single.path != null) {
         setState(() {
           _selectedFilePath = result.files.single.path;
@@ -1920,6 +1920,121 @@ class _GroupChatDetailScreenState extends State<GroupChatDetailScreen> {
     } catch (e) {
       debugPrint('Error picking file: $e');
     }
+  }
+
+  void _showAttachmentMenu(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF161F30) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Biriktirish',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _attachmentOption(
+                      icon: Icons.image_rounded,
+                      color: Colors.purple,
+                      label: 'Galereya',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.image);
+                      },
+                    ),
+                    _attachmentOption(
+                      icon: Icons.video_collection_rounded,
+                      color: Colors.pink,
+                      label: 'Video',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.video);
+                      },
+                    ),
+                    _attachmentOption(
+                      icon: Icons.insert_drive_file_rounded,
+                      color: Colors.blue,
+                      label: 'Fayl',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickFileWithType(FileType.any);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _attachmentOption({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: color.withOpacity(0.15),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isImage(String? fileUrl) {
+    if (fileUrl == null) return false;
+    final path = fileUrl.toLowerCase();
+    final cleanPath = path.split('?').first;
+    return cleanPath.endsWith('.png') ||
+        cleanPath.endsWith('.jpg') ||
+        cleanPath.endsWith('.jpeg') ||
+        cleanPath.endsWith('.gif') ||
+        cleanPath.endsWith('.webp') ||
+        path.contains('.png') ||
+        path.contains('.jpg') ||
+        path.contains('.jpeg') ||
+        path.contains('.webp') ||
+        path.contains('.gif');
   }
 
   void _clearFile() {
@@ -2078,33 +2193,87 @@ class _GroupChatDetailScreenState extends State<GroupChatDetailScreen> {
                                         ),
                                       if (m['file'] != null) ...[
                                         const SizedBox(height: 8),
-                                        InkWell(
-                                          onTap: () => _downloadAndOpenFile(m['file'], m['fileName'] ?? 'fayl'),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black26,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.insert_drive_file, color: Colors.amber, size: 20),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    m['fileName'] ?? 'Faylni ochish',
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
-                                                      decoration: TextDecoration.underline,
+                                        Builder(
+                                          builder: (context) {
+                                            final fileUrl = m['file'].toString();
+                                            String fullUrl = fileUrl;
+                                            if (!fileUrl.startsWith('http')) {
+                                              fullUrl = 'https://itparksurhondaryocrm.one' + fileUrl;
+                                            }
+
+                                            if (_isImage(fileUrl)) {
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => CustomImageViewerScreen(
+                                                        imageUrl: fullUrl,
+                                                        fileName: m['fileName'] ?? 'Rasm',
+                                                      ),
                                                     ),
+                                                  );
+                                                },
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Image.network(
+                                                    fullUrl,
+                                                    fit: BoxFit.cover,
+                                                    width: 220,
+                                                    height: 160,
+                                                    loadingBuilder: (context, child, loadingProgress) {
+                                                      if (loadingProgress == null) return child;
+                                                      return Container(
+                                                        width: 220,
+                                                        height: 160,
+                                                        color: Colors.black12,
+                                                        child: const Center(
+                                                          child: CircularProgressIndicator(color: Color(0xFF00B050), strokeWidth: 2),
+                                                        ),
+                                                      );
+                                                    },
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 220,
+                                                        height: 160,
+                                                        color: Colors.black12,
+                                                        child: const Icon(Icons.broken_image, color: Colors.grey),
+                                                      );
+                                                    },
                                                   ),
                                                 ),
-                                              ],
-                                            ),
-                                          ),
+                                              );
+                                            }
+
+                                            return InkWell(
+                                              onTap: () => _downloadAndOpenFile(m['file'], m['fileName'] ?? 'fayl'),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black26,
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.insert_drive_file, color: Colors.amber, size: 20),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        m['fileName'] ?? 'Faylni ochish',
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                          decoration: TextDecoration.underline,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ],
                                       const SizedBox(height: 4),
@@ -2155,7 +2324,7 @@ class _GroupChatDetailScreenState extends State<GroupChatDetailScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.attach_file, color: Colors.blueAccent),
-                        onPressed: _pickFile,
+                        onPressed: () => _showAttachmentMenu(context),
                       ),
                       Expanded(
                         child: TextField(
@@ -2680,6 +2849,41 @@ class SettingsTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CustomImageViewerScreen extends StatelessWidget {
+  final String imageUrl;
+  final String fileName;
+
+  const CustomImageViewerScreen({Key? key, required this.imageUrl, required this.fileName}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          clipBehavior: Clip.none,
+          maxScale: 4.0,
+          minScale: 0.5,
+          child: Image.network(
+            imageUrl,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const CircularProgressIndicator(color: Color(0xFF00B050));
+            },
+            errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey, size: 64),
+          ),
+        ),
       ),
     );
   }
