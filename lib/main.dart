@@ -1370,7 +1370,7 @@ class _MainShellState extends State<MainShell> {
         builder: (context, constraints) {
           final double totalWidth = constraints.maxWidth - 32;
           final int numTabs = 5;
-          final double tabWidth = totalWidth / numTabs;
+          final double tabWidth = (totalWidth - 16) / numTabs;
 
           return GestureDetector(
             onPanStart: (details) {
@@ -1424,7 +1424,7 @@ class _MainShellState extends State<MainShell> {
                       AnimatedPositioned(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
-                        left: ((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) - 4,
+                        left: (((_currentIndex >= numTabs ? 0 : _currentIndex) * tabWidth) + 8),
                         width: tabWidth,
                         top: 0,
                         bottom: 0,
@@ -1441,13 +1441,12 @@ class _MainShellState extends State<MainShell> {
                         ),
                       ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa', screens.length),
-                          _buildNavItem(1, Icons.calendar_today_rounded, 'Davomat', screens.length),
-                          _buildNavItem(2, Icons.account_balance_wallet_rounded, 'To\'lovlar', screens.length),
-                          _buildNavItem(3, Icons.group_rounded, 'Guruh Chat', screens.length),
-                          _buildNavItem(4, Icons.forum_rounded, 'Xabarlar', screens.length),
+                          Expanded(child: _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa', screens.length)),
+                          Expanded(child: _buildNavItem(1, Icons.calendar_today_rounded, 'Davomat', screens.length)),
+                          Expanded(child: _buildNavItem(2, Icons.account_balance_wallet_rounded, 'To\'lovlar', screens.length)),
+                          Expanded(child: _buildNavItem(3, Icons.group_rounded, 'Guruh Chat', screens.length)),
+                          Expanded(child: _buildNavItem(4, Icons.forum_rounded, 'Xabarlar', screens.length)),
                         ],
                       ),
                     ],

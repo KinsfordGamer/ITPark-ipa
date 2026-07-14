@@ -191,7 +191,7 @@ class _AdminShellState extends State<AdminShell> {
           builder: (context, constraints) {
             final double totalWidth = constraints.maxWidth - 32;
             final int numTabs = 5;
-            final double tabWidth = totalWidth / numTabs;
+            final double tabWidth = (totalWidth - 16) / numTabs;
             final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return GestureDetector(
@@ -247,7 +247,7 @@ class _AdminShellState extends State<AdminShell> {
                         AnimatedPositioned(
                           duration: const Duration(milliseconds: 200),
                           curve: Curves.easeOutCubic,
-                          left: (_currentIndex * tabWidth) - 4,
+                          left: ((_currentIndex * tabWidth) + 8),
                           width: tabWidth,
                           top: 0,
                           bottom: 0,
@@ -264,13 +264,12 @@ class _AdminShellState extends State<AdminShell> {
                           ),
                         ),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa'),
-                            _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar'),
-                            _buildNavItem(2, Icons.groups_rounded, 'Guruhlar'),
-                            _buildNavItem(3, Icons.fact_check_rounded, 'Davomat'),
-                            _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar'),
+                            Expanded(child: _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa')),
+                            Expanded(child: _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar')),
+                            Expanded(child: _buildNavItem(2, Icons.groups_rounded, 'Guruhlar')),
+                            Expanded(child: _buildNavItem(3, Icons.fact_check_rounded, 'Davomat')),
+                            Expanded(child: _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar')),
                           ],
                         ),
                       ],
