@@ -111,7 +111,7 @@ class _ThreeDContainerState extends State<ThreeDContainer> {
       duration: const Duration(milliseconds: 80),
       curve: Curves.easeOutCubic,
       height: widget.height,
-      width: widget.width,
+      width: widget.width ?? double.infinity,
       padding: widget.padding,
       decoration: BoxDecoration(
         color: finalBgColor,
