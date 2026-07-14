@@ -20,13 +20,14 @@ void main() async {
 
 class AppTheme {
   static bool isDark(BuildContext context) => Theme.of(context).brightness == Brightness.dark;
-  static Color cardBg(BuildContext context) => isDark(context) ? const Color(0xFF161F30) : Colors.white;
-  static Color darkBlueBg(BuildContext context) => isDark(context) ? const Color(0xFF131C2E) : Colors.white;
-  static Color bottomNavBg(BuildContext context) => isDark(context) ? const Color(0xFF0E1524) : Colors.white;
+  static Color cardBg(BuildContext context) => isDark(context) ? const Color(0xFF1E293B) : Colors.white;
+  static Color darkBlueBg(BuildContext context) => isDark(context) ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+  static Color bottomNavBg(BuildContext context) => isDark(context) ? const Color(0xFF1E293B).withOpacity(0.85) : Colors.white.withOpacity(0.9);
   static Color textPrimary(BuildContext context) => isDark(context) ? Colors.white : const Color(0xFF1E293B);
   static Color textSecondary(BuildContext context) => isDark(context) ? Colors.white54 : const Color(0xFF64748B);
-  static Color border(BuildContext context) => isDark(context) ? Colors.white10 : const Color(0xFFE2E8F0);
-  static Color accentColor = const Color(0xFF00B050);
+  static Color border(BuildContext context) => isDark(context) ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0);
+  static Color accentColor = const Color(0xFF10B981); // Emerald Mint Green
+  static Color secondaryColor = const Color(0xFF6366F1); // Indigo/Purple
 }
 
 class ThreeDContainer extends StatefulWidget {
@@ -1217,8 +1218,48 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  Widget _buildNavItem(int index, IconData icon, String label, int screensLength) {
+    final isSelected = (_currentIndex >= screensLength ? 0 : _currentIndex) == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = AppTheme.accentColor;
+    
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? activeColor.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 10.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Color(0xFF00B050))),
@@ -1269,7 +1310,7 @@ class _MainShellState extends State<MainShell> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFF00B050),
+                color: AppTheme.accentColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.school, size: 20, color: Colors.white),
@@ -1302,7 +1343,7 @@ class _MainShellState extends State<MainShell> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF00B050)),
+            icon: Icon(Icons.refresh, color: AppTheme.accentColor),
             onPressed: _fetchData,
           )
         ],
@@ -1313,24 +1354,38 @@ class _MainShellState extends State<MainShell> {
         index: _currentIndex >= screens.length ? 0 : _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex >= screens.length ? 0 : _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppTheme.bottomNavBg(context),
-        selectedItemColor: const Color(0xFF00B050),
-        unselectedItemColor: AppTheme.isDark(context) ? Colors.white38 : Colors.black45,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Bosh sahifa'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_rounded), label: 'Davomat'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'To\'lovlar'),
-          BottomNavigationBarItem(icon: Icon(Icons.group_rounded), label: 'Guruh Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.forum_rounded), label: 'Xabarlar'),
-        ],
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg(context).withOpacity(0.94),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa', screens.length),
+                _buildNavItem(1, Icons.calendar_today_rounded, 'Davomat', screens.length),
+                _buildNavItem(2, Icons.account_balance_wallet_rounded, 'To\'lovlar', screens.length),
+                _buildNavItem(3, Icons.group_rounded, 'Guruh Chat', screens.length),
+                _buildNavItem(4, Icons.forum_rounded, 'Xabarlar', screens.length),
+              ],
+            ),
+        ),
       ),
     );
   }
