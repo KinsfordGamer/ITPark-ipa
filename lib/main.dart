@@ -1260,7 +1260,6 @@ class _MainShellState extends State<MainShell> {
       PaymentsTab(payments: payments, onRefresh: _fetchData),
       StudentGroupChatTab(token: widget.token, groups: groups),
       StudentChatTab(token: widget.token),
-      SettingsTab(token: widget.token, student: student, onLogout: _logout),
     ];
 
     return Scaffold(
@@ -1288,6 +1287,21 @@ class _MainShellState extends State<MainShell> {
             onPressed: _showStudentNotificationsModal,
           ),
           IconButton(
+            icon: const Icon(Icons.settings_rounded, color: Colors.grey),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => Scaffold(
+                    appBar: AppBar(
+                      title: const Text('Sozlamalar'),
+                    ),
+                    body: SettingsTab(token: widget.token, student: student, onLogout: _logout),
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: Color(0xFF00B050)),
             onPressed: _fetchData,
           )
@@ -1296,11 +1310,11 @@ class _MainShellState extends State<MainShell> {
         backgroundColor: Colors.transparent,
       ),
       body: IndexedStack(
-        index: _currentIndex,
+        index: _currentIndex >= screens.length ? 0 : _currentIndex,
         children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: _currentIndex >= screens.length ? 0 : _currentIndex,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -1316,7 +1330,6 @@ class _MainShellState extends State<MainShell> {
           BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_rounded), label: 'To\'lovlar'),
           BottomNavigationBarItem(icon: Icon(Icons.group_rounded), label: 'Guruh Chat'),
           BottomNavigationBarItem(icon: Icon(Icons.forum_rounded), label: 'Xabarlar'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_rounded), label: 'Sozlamalar'),
         ],
       ),
     );
