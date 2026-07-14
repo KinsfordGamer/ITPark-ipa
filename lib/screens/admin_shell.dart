@@ -33,15 +33,38 @@ class _AdminShellState extends State<AdminShell> {
   bool _isFirstChatPoll = true;
   final Map<int, Map<String, dynamic>> _usersMap = {};
   bool _isDragging = false;
+  Timer? _tooltipTimer;
+  bool _showTooltip = false;
+  String _activeLabel = 'Bosh sahifa';
+  final List<String> _adminLabels = ['Bosh sahifa', 'O\'quvchilar', 'Guruhlar', 'Davomat', 'To\'lovlar'];
 
   void _handleDragUpdate(double localX, double tabWidth, int numTabs) {
     int index = (localX / tabWidth).floor().clamp(0, numTabs - 1);
     if (_currentIndex != index) {
       setState(() {
         _currentIndex = index;
+        _activeLabel = _adminLabels[index];
+        _showTooltip = true;
       });
       HapticFeedback.selectionClick();
       _pageController.jumpToPage(index);
+    }
+  }
+
+  void _triggerTooltip(String label) {
+    _tooltipTimer?.cancel();
+    setState(() {
+      _activeLabel = label;
+      _showTooltip = true;
+    });
+    if (!_isDragging) {
+      _tooltipTimer = Timer(const Duration(milliseconds: 1200), () {
+        if (mounted) {
+          setState(() {
+            _showTooltip = false;
+          });
+        }
+      });
     }
   }
 
@@ -58,6 +81,7 @@ class _AdminShellState extends State<AdminShell> {
     _pageController.dispose();
     _smsProcessorTimer?.cancel();
     _chatPollingTimer?.cancel();
+    _tooltipTimer?.cancel();
     super.dispose();
   }
 
@@ -187,98 +211,134 @@ class _AdminShellState extends State<AdminShell> {
         children: screens,
       ),
       bottomNavigationBar: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final double totalWidth = constraints.maxWidth - 32;
-            final int numTabs = 5;
-            final double tabWidth = (totalWidth - 16) / numTabs;
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-
-            return GestureDetector(
-              onPanStart: (details) {
-                setState(() {
-                  _isDragging = true;
-                });
-                _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
-              },
-              onPanUpdate: (details) {
-                _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
-              },
-              onPanEnd: (_) {
-                setState(() {
-                  _isDragging = false;
-                });
-              },
-              onPanCancel: () {
-                setState(() {
-                  _isDragging = false;
-                });
-              },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedOpacity(
+              opacity: (_isDragging || _showTooltip) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 24 : 16),
-                height: 70,
-                transform: Matrix4.identity()
-                  ..translate(0.0, _isDragging ? -6.0 : 0.0)
-                  ..scale(_isDragging ? 1.04 : 1.0),
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.cardBg(context).withOpacity(_isDragging ? 0.88 : 0.94),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: _isDragging 
-                        ? AppTheme.accentColor.withOpacity(0.35)
-                        : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
-                    width: _isDragging ? 1.6 : 1.2,
-                  ),
+                  color: AppTheme.accentColor.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
-                      blurRadius: _isDragging ? 22 : 18,
-                      offset: Offset(0, _isDragging ? 12 : 8),
-                    ),
+                      color: AppTheme.accentColor.withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    child: Stack(
-                      children: [
-                        AnimatedPositioned(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOutCubic,
-                          left: ((_currentIndex * tabWidth) + 8),
-                          width: tabWidth,
-                          top: 0,
-                          bottom: 0,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accentColor.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppTheme.accentColor.withOpacity(0.35),
-                                width: 1.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa')),
-                            Expanded(child: _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar')),
-                            Expanded(child: _buildNavItem(2, Icons.groups_rounded, 'Guruhlar')),
-                            Expanded(child: _buildNavItem(3, Icons.fact_check_rounded, 'Davomat')),
-                            Expanded(child: _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar')),
-                          ],
-                        ),
-                      ],
-                    ),
+                child: Text(
+                  _activeLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
               ),
-            );
-          },
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double totalWidth = constraints.maxWidth - 32;
+                final int numTabs = 5;
+                final double tabWidth = (totalWidth - 16) / numTabs;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                return GestureDetector(
+                  onPanStart: (details) {
+                    setState(() {
+                      _isDragging = true;
+                    });
+                    _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+                  },
+                  onPanUpdate: (details) {
+                    _handleDragUpdate(details.localPosition.dx, tabWidth, numTabs);
+                  },
+                  onPanEnd: (_) {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                    _triggerTooltip(_activeLabel);
+                  },
+                  onPanCancel: () {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                    _triggerTooltip(_activeLabel);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    margin: EdgeInsets.fromLTRB(16, 0, 16, _isDragging ? 24 : 16),
+                    height: 70,
+                    transform: Matrix4.identity()
+                      ..translate(0.0, _isDragging ? -6.0 : 0.0)
+                      ..scale(_isDragging ? 1.04 : 1.0),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardBg(context).withOpacity(_isDragging ? 0.88 : 0.94),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: _isDragging 
+                            ? AppTheme.accentColor.withOpacity(0.35)
+                            : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04)),
+                        width: _isDragging ? 1.6 : 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark ? Colors.black.withOpacity(0.35) : Colors.grey.withOpacity(0.12),
+                          blurRadius: _isDragging ? 22 : 18,
+                          offset: Offset(0, _isDragging ? 12 : 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                        child: Stack(
+                          children: [
+                            AnimatedPositioned(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                              left: ((_currentIndex * tabWidth) + 8),
+                              width: tabWidth,
+                              top: 0,
+                              bottom: 0,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppTheme.accentColor.withOpacity(0.35),
+                                    width: 1.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Expanded(child: _buildNavItem(0, Icons.dashboard_rounded, 'Bosh sahifa')),
+                                Expanded(child: _buildNavItem(1, Icons.people_rounded, 'O\'quvchilar')),
+                                Expanded(child: _buildNavItem(2, Icons.groups_rounded, 'Guruhlar')),
+                                Expanded(child: _buildNavItem(3, Icons.fact_check_rounded, 'Davomat')),
+                                Expanded(child: _buildNavItem(4, Icons.payments_rounded, 'To\'lovlar')),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -292,6 +352,7 @@ class _AdminShellState extends State<AdminShell> {
     return GestureDetector(
       onTap: () {
         setState(() => _currentIndex = index);
+        _triggerTooltip(_adminLabels[index]);
         _pageController.animateToPage(
           index,
           duration: const Duration(milliseconds: 350),
@@ -300,7 +361,7 @@ class _AdminShellState extends State<AdminShell> {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -311,16 +372,7 @@ class _AdminShellState extends State<AdminShell> {
               child: Icon(
                 icon,
                 color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? activeColor : (isDark ? Colors.white38 : Colors.black45),
+                size: 26,
               ),
             ),
           ],
