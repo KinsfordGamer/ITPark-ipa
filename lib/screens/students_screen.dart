@@ -463,6 +463,13 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
               debt > 0 ? 'Qarzdorlik: ${debt.toInt()} so\'m' : 'To\'langan: ${paid.toInt()} so\'m',
               textColor: debt > 0 ? Colors.redAccent : const Color(0xFF00B050),
             ),
+            const SizedBox(height: 12),
+            _buildDetailRow(
+              Icons.star_rounded,
+              'Yulduzchalari',
+              '${student['stars'] ?? 0} ta',
+              textColor: Colors.amber,
+            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -608,7 +615,41 @@ class _StudentsScreenState extends State<StudentsScreen> with AutomaticKeepAlive
                                     color: hasDebt ? Colors.redAccent : const Color(0xFF00B050)),
                               ),
                             ),
-                            title: Text('${index + 1}. $name', style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${index + 1}. $name',
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.amber.withOpacity(0.3), width: 1),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${s['stars'] ?? 0}',
+                                        style: const TextStyle(
+                                          color: Colors.amber,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
